@@ -3,6 +3,19 @@
 
 using namespace GLContext;
 
+float pointSize = 3.5f;
+bool pause = false;
+
+float maxMut = 10.0f;
+float minMut = -10.0f;
+
+ivec2 startPoint = vec2(150, 150);
+
+int gridWidth = 300;
+int gridHeigth = 300;
+
+string message = " ";
+
 struct Cell {
     vec4 color = vec4(0, 0, 0, 0);
     bool empty = true;
@@ -10,10 +23,99 @@ struct Cell {
     uvec2 neighbors[8];
 };
 
-const int gridWidth = 100;
-const int gridHeigth = 100;
+
 vector<vector<Cell>> grid(gridWidth, vector<Cell>(gridHeigth));
 
+
+// Function to mutate the hue of an RGBA color
+vec4 mutateHue(vec4 color) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(minMut, maxMut);
+    float hueMutation = dis(gen);
+    // Convert RGB to HSV
+    float r = color.x;
+    float g = color.y;
+    float b = color.z;
+    float maxVal = std::max(std::max(r, g), b);
+    float minVal = std::min(std::min(r, g), b);
+    float delta = maxVal - minVal;
+
+    float h, s, v;
+    v = maxVal;
+
+    if (maxVal != 0.0f) {
+        s = delta / maxVal;
+        if (r == maxVal) {
+            h = (g - b) / delta;
+        }
+        else if (g == maxVal) {
+            h = 2.0f + (b - r) / delta;
+        }
+        else {
+            h = 4.0f + (r - g) / delta;
+        }
+
+        h *= 60.0f;
+        if (h < 0.0f) {
+            h += 360.0f;
+        }
+    }
+    else {
+        h = 0.0f;
+        s = 0.0f;
+    }
+
+    // Mutate the hue
+    h += hueMutation;
+    if (h > 360.0f) {
+        h -= 360.0f;
+    }
+
+    // Convert HSV back to RGB
+    float c = v * s;
+    float x = c * (1 - std::abs(fmod(h / 60.0f, 2) - 1));
+    float m = v - c;
+
+    if (h >= 0.0f && h < 60.0f) {
+        r = c + m;
+        g = x + m;
+        b = m;
+    }
+    else if (h >= 60.0f && h < 120.0f) {
+        r = x + m;
+        g = c + m;
+        b = m;
+    }
+    else if (h >= 120.0f && h < 180.0f) {
+        r = m;
+        g = c + m;
+        b = x + m;
+    }
+    else if (h >= 180.0f && h < 240.0f) {
+        r = m;
+        g = x + m;
+        b = c + m;
+    }
+    else if (h >= 240.0f && h < 300.0f) {
+        r = x + m;
+        g = m;
+        b = c + m;
+    }
+    else if (h >= 300.0f && h <= 360.0f) {
+        r = c + m;
+        g = m;
+        b = x + m;
+    }
+    return vec4(r, g, b, color.w);
+}
+
+uvec2 getRandomElement(vector<uvec2>& vec) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, vec.size() - 1);
+    return vec[dis(gen)];
+}
 
 vec4 getRandomColor()
 {
@@ -49,28 +151,47 @@ void populateNeighbors(Cell& cell) {
 void populateGrid() {
     for (int i = 0; i < gridWidth; i++) {
         for (int u = 0; u < gridHeigth; u++) {
-            grid[i][u].color = getRandomColor();
             grid[i][u].pos = uvec2(i, u);
+            grid[i][u].empty = true;
+            grid[i][u].color = vec4(0, 0, 0, 0);
             populateNeighbors(grid[i][u]);
         }
     }
+    grid[startPoint.x][startPoint.y].empty = false;
+    grid[startPoint.x][startPoint.y].color = getRandomColor();
 }
 
-vector<Cell> getNeighbors(Cell& cell) {
-    vector<Cell> neighbors;
-    for (uvec2 n : cell.neighbors) {
-        if (n.x != -1) {
-            neighbors.push_back(grid[n.x][n.y]);
+vector<uvec2> getEmptyNeighbors(Cell& cell) {
+    vector<uvec2> emptyNeighbors;
+    for (uvec2& c : cell.neighbors) {
+        if (c.x != -1) {
+            if (grid[c.x][c.y].empty) {
+                emptyNeighbors.push_back(c);
+            }
         }
     }
-    return neighbors;
+    return emptyNeighbors;
 }
 
-
 void drawCell(Cell& cell) {
-    float x = ((float)cell.pos.x / (float)gridWidth) * 2.0f - 1.0f + (1.0f / (float)gridWidth);
-    float y = ((float)cell.pos.y / (float)gridHeigth) * 2.0f - 1.0f + (1.0f / (float)gridHeigth);
-    drawPoint(vec2(x, y), 10.0f, cell.color);
+    float x = ((float)cell.pos.x / gridWidth) * 2.0f - 1.0f + (1.0f / (float)gridWidth);
+    float y = ((float)cell.pos.y / gridHeigth) * 2.0f - 1.0f + (1.0f / (float)gridHeigth);
+    drawPoint(vec2(x, y), pointSize, cell.color);
+}
+
+void propagation() {
+    for (int i = 0; i < gridWidth; i++) {
+        for (int u = 0; u < gridHeigth; u++) {
+            if (!grid[i][u].empty) {
+                vector<uvec2>emptyNeighbors = getEmptyNeighbors(grid[i][u]);
+                if (emptyNeighbors.size() > 0) {
+                    uvec2 pos = getRandomElement(emptyNeighbors);
+                    grid[pos.x][pos.y].empty = false;
+                    grid[pos.x][pos.y].color = mutateHue(grid[i][u].color);
+                }
+            }
+        }
+    }
 }
 
 void drawGrid() {
@@ -81,22 +202,33 @@ void drawGrid() {
     }
 }
 
-void drawNeighbors(Cell& cell) {
-    for (Cell& c : getNeighbors(cell)) {
-        drawCell(c);
-    }
-}
-
-
-
 void init() {
     populateGrid();
+    
 }
-
 void draw() {
-    drawNeighbors(grid[9][0]);
+    if (!pause) {
+        propagation();
+    }
+    drawGrid();
 }
 
+void ui() {
+    ImGui::Begin("parameters");
+    ImGui::InputInt2("starting point", &startPoint.x);
+    ImGui::InputInt("resolution W", &gridWidth);
+    ImGui::InputInt("resolution H", &gridHeigth);
+    ImGui::InputFloat("point size", &pointSize);
+    ImGui::InputFloat("max mutation", &maxMut);
+    ImGui::InputFloat("min mutation", &minMut);
+    ImGui::Checkbox("pause", &pause);
+    if (ImGui::Button("Reset")) { populateGrid(); }
+    if (ImGui::Button("take screenshot")) { message = TakeScreenshot(); }
+    ImGui::Text(message.c_str());
+
+    ImGui::End();
+    
+}
 
 
 
@@ -104,8 +236,13 @@ int WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char* szCmdLine, int iCmdShow)
     GLContext::window_name = "Huegene";
     initialize = init;
     onDraw = draw;
-    GLContext::init(1200, 1200);
+    onDrawUI = ui;
+    GLContext::init(1000, 1000);
     return 0;
 }
+
+//TODO : clamp parameters
+//TODO : optimise
+//TODO : many starting point with mouse
 
 
