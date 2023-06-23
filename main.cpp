@@ -35,26 +35,14 @@ void populateNeighbors(Cell& cell) {
     for (uvec2& c : cell.neighbors) {
         c = uvec2(-1,-1);
     }
-
-    if (y < gridHeigth) {
-        cell.neighbors[0] = uvec2(x - 1, y + 1);
-        cell.neighbors[1] = uvec2(x, y + 1);
-        cell.neighbors[2] = uvec2(x + 1, y + 1);
-    }
-
-    if (x < gridWidth) {
-        cell.neighbors[3] = uvec2(x + 1, y);
-    }
-    
-    if (x > 0) {
-        cell.neighbors[7] = uvec2(x - 1, y);
-    }
-
-    if (y > 0) {
-        cell.neighbors[4] = uvec2(x + 1, y - 1);
-        cell.neighbors[5] = uvec2(x, y - 1);
-        cell.neighbors[6] = uvec2(x - 1, y - 1);
-    } 
+    if(x - 1 > 0         && y + 1 < gridHeigth)cell.neighbors[0] = uvec2(x - 1, y + 1);
+    if(                     y + 1 < gridHeigth)cell.neighbors[1] = uvec2(x    , y + 1);
+    if(x + 1 < gridWidth && y + 1 < gridHeigth)cell.neighbors[2] = uvec2(x + 1, y + 1);
+    if(x + 1 < gridWidth                      )cell.neighbors[3] = uvec2(x + 1, y    );
+    if(x - 1 > 0                              )cell.neighbors[7] = uvec2(x - 1, y    );
+    if(x + 1 < gridWidth && y - 1 > 0         )cell.neighbors[4] = uvec2(x + 1, y - 1);
+    if(                     y - 1 > 0         )cell.neighbors[5] = uvec2(x    , y - 1);
+    if(x - 1 > 0         && y - 1 > 0         )cell.neighbors[6] = uvec2(x - 1, y - 1);
 }
 
 
@@ -106,13 +94,13 @@ void init() {
 }
 
 void draw() {
-    drawNeighbors(grid[20][50]);
+    drawNeighbors(grid[9][0]);
 }
 
 
 
 
-int __stdcall WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char* szCmdLine, int iCmdShow) {
+int WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char* szCmdLine, int iCmdShow) {
     GLContext::window_name = "Huegene";
     initialize = init;
     onDraw = draw;
