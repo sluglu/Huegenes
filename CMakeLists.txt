@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(snowflake_gen)
+project(huegene)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 11)
