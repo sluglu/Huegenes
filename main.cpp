@@ -24,12 +24,12 @@ vec4 getRandomColor()
     float red = dis(gen);
     float green = dis(gen);
     float blue = dis(gen);
-    float alpha = 1.0f; // You can modify this if you want random alpha values as well
+    float alpha = 1.0f;
 
     return vec4(red, green, blue, alpha);
 }
 
-void getNeighbors(Cell& cell) {
+void populateNeighbors(Cell& cell) {
     int x = cell.pos.x;
     int y = cell.pos.y;
     for (uvec2& c : cell.neighbors) {
@@ -58,33 +58,55 @@ void getNeighbors(Cell& cell) {
 }
 
 
-void populateGrid(vector<vector<Cell>>& grid) {
+void populateGrid() {
     for (int i = 0; i < gridWidth; i++) {
         for (int u = 0; u < gridHeigth; u++) {
             grid[i][u].color = getRandomColor();
             grid[i][u].pos = uvec2(i, u);
-            getNeighbors(grid[i][u]);
+            populateNeighbors(grid[i][u]);
         }
     }
 }
 
-void drawGrid(vector<vector<Cell>>& grid) {
+vector<Cell> getNeighbors(Cell& cell) {
+    vector<Cell> neighbors;
+    for (uvec2 n : cell.neighbors) {
+        if (n.x != -1) {
+            neighbors.push_back(grid[n.x][n.y]);
+        }
+    }
+    return neighbors;
+}
+
+
+void drawCell(Cell& cell) {
+    float x = ((float)cell.pos.x / (float)gridWidth) * 2.0f - 1.0f + (1.0f / (float)gridWidth);
+    float y = ((float)cell.pos.y / (float)gridHeigth) * 2.0f - 1.0f + (1.0f / (float)gridHeigth);
+    drawPoint(vec2(x, y), 10.0f, cell.color);
+}
+
+void drawGrid() {
     for (int i = 0; i < gridWidth; i++) {
         for (int u = 0; u < gridHeigth; u++) {
-            float x = ((float)grid[i][u].pos.x / (float)gridWidth) * 2.0f - 1.0f + (1.0f/ (float)gridWidth);
-            float y = ((float)grid[i][u].pos.y / (float)gridHeigth) * 2.0f - 1.0f + (1.0f / (float)gridHeigth);
-            drawPoint(vec2(x,y), 10.0f, grid[i][u].color);
+            drawCell(grid[i][u]);
         }
     }
 }
+
+void drawNeighbors(Cell& cell) {
+    for (Cell& c : getNeighbors(cell)) {
+        drawCell(c);
+    }
+}
+
 
 
 void init() {
-    populateGrid(grid);
+    populateGrid();
 }
 
 void draw() {
-    drawGrid(grid);
+    drawNeighbors(grid[20][50]);
 }
 
 
