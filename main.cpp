@@ -3,18 +3,16 @@
 
 using namespace GLContext;
 
-float pointSize = 3.5f;
+
 bool pause = false;
 
 float maxMut = 10.0f;
 float minMut = -10.0f;
-
 ivec2 startPoint = vec2(150, 150);
-
-int gridWidth = 300;
-int gridHeigth = 300;
+int gridSize = 300;
 
 string message = " ";
+float pointSize = 3.5f;
 
 struct Cell {
     vec4 color = vec4(0, 0, 0, 0);
@@ -24,7 +22,7 @@ struct Cell {
 };
 
 
-vector<vector<Cell>> grid(gridWidth, vector<Cell>(gridHeigth));
+vector<vector<Cell>> grid(gridSize, vector<Cell>(gridSize));
 
 
 // Function to mutate the hue of an RGBA color
@@ -137,20 +135,23 @@ void populateNeighbors(Cell& cell) {
     for (uvec2& c : cell.neighbors) {
         c = uvec2(-1,-1);
     }
-    if(x - 1 > 0         && y + 1 < gridHeigth)cell.neighbors[0] = uvec2(x - 1, y + 1);
-    if(                     y + 1 < gridHeigth)cell.neighbors[1] = uvec2(x    , y + 1);
-    if(x + 1 < gridWidth && y + 1 < gridHeigth)cell.neighbors[2] = uvec2(x + 1, y + 1);
-    if(x + 1 < gridWidth                      )cell.neighbors[3] = uvec2(x + 1, y    );
+    if(x - 1 > 0         && y + 1 < gridSize)cell.neighbors[0] = uvec2(x - 1, y + 1);
+    if(                     y + 1 < gridSize)cell.neighbors[1] = uvec2(x    , y + 1);
+    if(x + 1 < gridSize && y + 1 < gridSize)cell.neighbors[2] = uvec2(x + 1, y + 1);
+    if(x + 1 < gridSize                      )cell.neighbors[3] = uvec2(x + 1, y    );
     if(x - 1 > 0                              )cell.neighbors[7] = uvec2(x - 1, y    );
-    if(x + 1 < gridWidth && y - 1 > 0         )cell.neighbors[4] = uvec2(x + 1, y - 1);
+    if(x + 1 < gridSize && y - 1 > 0         )cell.neighbors[4] = uvec2(x + 1, y - 1);
     if(                     y - 1 > 0         )cell.neighbors[5] = uvec2(x    , y - 1);
     if(x - 1 > 0         && y - 1 > 0         )cell.neighbors[6] = uvec2(x - 1, y - 1);
 }
 
 
 void populateGrid() {
-    for (int i = 0; i < gridWidth; i++) {
-        for (int u = 0; u < gridHeigth; u++) {
+    grid = vector<vector<Cell>>(gridSize, vector<Cell>(gridSize));
+    startPoint = vec2(gridSize / 2, gridSize / 2);
+    pointSize = ceil((float)GLContext::SCR_WIDTH / (float)gridSize);
+    for (int i = 0; i < gridSize; i++) {
+        for (int u = 0; u < gridSize; u++) {
             grid[i][u].pos = uvec2(i, u);
             grid[i][u].empty = true;
             grid[i][u].color = vec4(0, 0, 0, 0);
@@ -174,14 +175,14 @@ vector<uvec2> getEmptyNeighbors(Cell& cell) {
 }
 
 void drawCell(Cell& cell) {
-    float x = ((float)cell.pos.x / gridWidth) * 2.0f - 1.0f + (1.0f / (float)gridWidth);
-    float y = ((float)cell.pos.y / gridHeigth) * 2.0f - 1.0f + (1.0f / (float)gridHeigth);
+    float x = ((float)cell.pos.x / gridSize) * 2.0f - 1.0f + (1.0f / (float)gridSize);
+    float y = ((float)cell.pos.y / gridSize) * 2.0f - 1.0f + (1.0f / (float)gridSize);
     drawPoint(vec2(x, y), pointSize, cell.color);
 }
 
 void propagation() {
-    for (int i = 0; i < gridWidth; i++) {
-        for (int u = 0; u < gridHeigth; u++) {
+    for (int i = 0; i < gridSize; i++) {
+        for (int u = 0; u < gridSize; u++) {
             if (!grid[i][u].empty) {
                 vector<uvec2>emptyNeighbors = getEmptyNeighbors(grid[i][u]);
                 if (emptyNeighbors.size() > 0) {
@@ -195,8 +196,8 @@ void propagation() {
 }
 
 void drawGrid() {
-    for (int i = 0; i < gridWidth; i++) {
-        for (int u = 0; u < gridHeigth; u++) {
+    for (int i = 0; i < gridSize; i++) {
+        for (int u = 0; u < gridSize; u++) {
             drawCell(grid[i][u]);
         }
     }
@@ -213,12 +214,15 @@ void draw() {
     drawGrid();
 }
 
+//starting color
+//starting points (mouse)
+
 void ui() {
     ImGui::Begin("parameters");
     ImGui::InputInt2("starting point", &startPoint.x);
-    ImGui::InputInt("resolution W", &gridWidth);
-    ImGui::InputInt("resolution H", &gridHeigth);
-    ImGui::InputFloat("point size", &pointSize);
+    if (ImGui::InputInt("grid size", &gridSize)) {
+        populateGrid();
+    }
     ImGui::InputFloat("max mutation", &maxMut);
     ImGui::InputFloat("min mutation", &minMut);
     ImGui::Checkbox("pause", &pause);
