@@ -8,7 +8,7 @@ bool pause = false;
 
 float maxMut = 10.0f;
 float minMut = -10.0f;
-ivec2 startPoint = vec2(150, 150);
+std::vector<ivec2> startingPoints = { vec2(150, 150) };
 int gridSize = 300;
 
 string message = " ";
@@ -148,7 +148,6 @@ void populateNeighbors(Cell& cell) {
 
 void populateGrid() {
     grid = vector<vector<Cell>>(gridSize, vector<Cell>(gridSize));
-    startPoint = vec2(gridSize / 2, gridSize / 2);
     pointSize = ceil((float)GLContext::SCR_WIDTH / (float)gridSize);
     for (int i = 0; i < gridSize; i++) {
         for (int u = 0; u < gridSize; u++) {
@@ -158,8 +157,10 @@ void populateGrid() {
             populateNeighbors(grid[i][u]);
         }
     }
-    grid[startPoint.x][startPoint.y].empty = false;
-    grid[startPoint.x][startPoint.y].color = getRandomColor();
+    for (ivec2 p : startingPoints) {
+        grid[p.x][p.y].empty = false;
+        grid[p.x][p.y].color = getRandomColor();
+    }
 }
 
 vector<uvec2> getEmptyNeighbors(Cell& cell) {
@@ -214,12 +215,27 @@ void draw() {
     drawGrid();
 }
 
-//starting color
+void drawStartingPointsList()
+{
+    ImGui::Text("starting points");
+    for (int i = 0; i < startingPoints.size(); i++)
+    {
+        ImGui::PushID(i);
+        ImGui::InputInt2(("point " + to_string(i)).c_str(), &startingPoints[i].x);
+        ImGui::PopID();
+    }
+    if (ImGui::Button("Remove")){startingPoints.pop_back();}
+    if (ImGui::Button("Add point")){startingPoints.push_back(uvec2());}
+}
+
+//starting colors
 //starting points (mouse)
+
+
 
 void ui() {
     ImGui::Begin("parameters");
-    ImGui::InputInt2("starting point", &startPoint.x);
+    drawStartingPointsList();
     if (ImGui::InputInt("grid size", &gridSize)) {
         populateGrid();
     }
@@ -241,12 +257,13 @@ int WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char* szCmdLine, int iCmdShow)
     initialize = init;
     onDraw = draw;
     onDrawUI = ui;
-    GLContext::init(1000, 1000);
+    GLContext::init(1200, 1000);
     return 0;
 }
 
 //TODO : clamp parameters
 //TODO : optimise
 //TODO : many starting point with mouse
+//TODO : bug growing rate (bottom right)
 
 
