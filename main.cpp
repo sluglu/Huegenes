@@ -8,7 +8,7 @@ bool pause = false;
 
 float maxMut = 10.0f;
 float minMut = -10.0f;
-std::vector<ivec2> startingPoints = { vec2(150, 150) };
+std::vector<vec2> startingPoints = { vec2(0.5f, 0.5f) };
 int gridSize = 300;
 
 string message = " ";
@@ -157,9 +157,12 @@ void populateGrid() {
             populateNeighbors(grid[i][u]);
         }
     }
-    for (ivec2 p : startingPoints) {
-        grid[p.x][p.y].empty = false;
-        grid[p.x][p.y].color = getRandomColor();
+    for (vec2 p : startingPoints) {
+        ivec2 r = (p * (float)gridSize);
+        if (r.x == gridSize) { r.x -= 1; }
+        if (r.y == gridSize) { r.y -= 1; }
+        grid[r.x][r.y].empty = false;
+        grid[r.x][r.y].color = getRandomColor();
     }
 }
 
@@ -221,15 +224,12 @@ void drawStartingPointsList()
     for (int i = 0; i < startingPoints.size(); i++)
     {
         ImGui::PushID(i);
-        ImGui::InputInt2(("point " + to_string(i)).c_str(), &startingPoints[i].x);
+        ImGui::InputFloat2(("point " + to_string(i)).c_str(), &startingPoints[i].x);
         ImGui::PopID();
     }
     if (ImGui::Button("Remove")){startingPoints.pop_back();}
     if (ImGui::Button("Add point")){startingPoints.push_back(uvec2());}
 }
-
-//starting colors
-//starting points (mouse)
 
 
 
@@ -261,9 +261,10 @@ int WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char* szCmdLine, int iCmdShow)
     return 0;
 }
 
-//TODO : clamp parameters
+//TODO : clamp parameters(gridsize, startings points, mut-/+)
 //TODO : optimise
 //TODO : many starting point with mouse
 //TODO : bug growing rate (bottom right)
+//TODO : startings colors
 
 
