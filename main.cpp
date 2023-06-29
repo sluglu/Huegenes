@@ -5,11 +5,12 @@ using namespace GLContext;
 
 
 bool pause = false;
-
-float maxMut = 10.0f;
-float minMut = -10.0f;
 std::vector<vec2> startingPoints = { vec2(0.5f, 0.5f) };
 int gridSize = 300;
+float mutation = 10.0f;
+bool negativeMut = true;
+
+int newGridSize = gridSize;
 
 string message = " ";
 float pointSize = 3.5f;
@@ -18,18 +19,20 @@ struct Cell {
     vec4 color = vec4(0, 0, 0, 0);
     bool empty = true;
     uvec2 pos = uvec2(0, 0);
-    uvec2 neighbors[8];
+    vector<uvec2> neighbors;
 };
 
 
 vector<vector<Cell>> grid(gridSize, vector<Cell>(gridSize));
-
+vector<uvec2> livingCell;
 
 // Function to mutate the hue of an RGBA color
 vec4 mutateHue(vec4 color) {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(minMut, maxMut);
+    float min = 0.0f;
+    if (negativeMut) { min = -mutation; }
+    std::uniform_real_distribution<float> dis(min, mutation);
     float hueMutation = dis(gen);
     // Convert RGB to HSV
     float r = color.x;
@@ -108,10 +111,10 @@ vec4 mutateHue(vec4 color) {
     return vec4(r, g, b, color.w);
 }
 
-uvec2 getRandomElement(vector<uvec2>& vec) {
+uvec2 getRandomElement(const vector<uvec2>& vec) {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, vec.size() - 1);
+    std::uniform_int_distribution<int> dis(0, vec.size() - 1);
     return vec[dis(gen)];
 }
 
@@ -132,21 +135,20 @@ vec4 getRandomColor()
 void populateNeighbors(Cell& cell) {
     int x = cell.pos.x;
     int y = cell.pos.y;
-    for (uvec2& c : cell.neighbors) {
-        c = uvec2(-1,-1);
-    }
-    if(x - 1 > 0         && y + 1 < gridSize)cell.neighbors[0] = uvec2(x - 1, y + 1);
-    if(                     y + 1 < gridSize)cell.neighbors[1] = uvec2(x    , y + 1);
-    if(x + 1 < gridSize && y + 1 < gridSize)cell.neighbors[2] = uvec2(x + 1, y + 1);
-    if(x + 1 < gridSize                      )cell.neighbors[3] = uvec2(x + 1, y    );
-    if(x - 1 > 0                              )cell.neighbors[7] = uvec2(x - 1, y    );
-    if(x + 1 < gridSize && y - 1 > 0         )cell.neighbors[4] = uvec2(x + 1, y - 1);
-    if(                     y - 1 > 0         )cell.neighbors[5] = uvec2(x    , y - 1);
-    if(x - 1 > 0         && y - 1 > 0         )cell.neighbors[6] = uvec2(x - 1, y - 1);
+    if  (x - 1 > 0        && y + 1 < gridSize)    cell.neighbors.push_back(uvec2(x - 1, y + 1));
+    if  (                    y + 1 < gridSize)    cell.neighbors.push_back(uvec2(x    , y + 1));
+    if  (x + 1 < gridSize && y + 1 < gridSize)    cell.neighbors.push_back(uvec2(x + 1, y + 1));
+    if  (x + 1 < gridSize                    )    cell.neighbors.push_back(uvec2(x + 1, y    ));
+    if  (x + 1 < gridSize && y - 1 > 0       )    cell.neighbors.push_back(uvec2(x + 1, y - 1));
+    if  (                    y - 1 > 0       )    cell.neighbors.push_back(uvec2(x    , y - 1));
+    if  (x - 1 > 0        && y - 1 > 0       )    cell.neighbors.push_back(uvec2(x - 1, y - 1));
+    if  (x - 1 > 0                           )    cell.neighbors.push_back(uvec2(x - 1, y    ));
+
 }
 
 
 void populateGrid() {
+    livingCell = vector<uvec2>();
     grid = vector<vector<Cell>>(gridSize, vector<Cell>(gridSize));
     pointSize = ceil((float)GLContext::SCR_WIDTH / (float)gridSize);
     for (int i = 0; i < gridSize; i++) {
@@ -163,40 +165,50 @@ void populateGrid() {
         if (r.y == gridSize) { r.y -= 1; }
         grid[r.x][r.y].empty = false;
         grid[r.x][r.y].color = getRandomColor();
+        livingCell.push_back(grid[r.x][r.y].pos);
     }
 }
 
-vector<uvec2> getEmptyNeighbors(Cell& cell) {
+vector<uvec2> getEmptyNeighbors(const Cell& cell) {
     vector<uvec2> emptyNeighbors;
-    for (uvec2& c : cell.neighbors) {
-        if (c.x != -1) {
-            if (grid[c.x][c.y].empty) {
-                emptyNeighbors.push_back(c);
-            }
+    for (const uvec2& c : cell.neighbors) {
+        if (grid[c.x][c.y].empty) {
+            emptyNeighbors.push_back(c);
         }
     }
     return emptyNeighbors;
 }
 
-void drawCell(Cell& cell) {
+void drawCell(const Cell& cell) {
     float x = ((float)cell.pos.x / gridSize) * 2.0f - 1.0f + (1.0f / (float)gridSize);
     float y = ((float)cell.pos.y / gridSize) * 2.0f - 1.0f + (1.0f / (float)gridSize);
     drawPoint(vec2(x, y), pointSize, cell.color);
 }
 
 void propagation() {
-    for (int i = 0; i < gridSize; i++) {
-        for (int u = 0; u < gridSize; u++) {
-            if (!grid[i][u].empty) {
-                vector<uvec2>emptyNeighbors = getEmptyNeighbors(grid[i][u]);
-                if (emptyNeighbors.size() > 0) {
-                    uvec2 pos = getRandomElement(emptyNeighbors);
-                    grid[pos.x][pos.y].empty = false;
-                    grid[pos.x][pos.y].color = mutateHue(grid[i][u].color);
-                }
+    vector<uvec2> newCell;
+    vector<uvec2> oldCell;
+    for(uvec2& c : livingCell){
+        if (!grid[c.x][c.y].empty) {
+            vector<uvec2>emptyNeighbors = getEmptyNeighbors(grid[c.x][c.y]);
+            if (emptyNeighbors.size() > 0) {
+                uvec2 pos = getRandomElement(emptyNeighbors);
+                grid[pos.x][pos.y].empty = false;
+                grid[pos.x][pos.y].color = mutateHue(grid[c.x][c.y].color);
+                newCell.push_back(grid[pos.x][pos.y].pos);
+            }
+            else {
+                oldCell.push_back(c);
             }
         }
     }
+    for (uvec2 c : oldCell) {
+        livingCell.erase(std::remove(livingCell.begin(), livingCell.end(), c), livingCell.end());
+    }
+    for (uvec2 c : newCell) {
+        livingCell.push_back(c);
+    }
+
 }
 
 void drawGrid() {
@@ -224,7 +236,8 @@ void drawStartingPointsList()
     for (int i = 0; i < startingPoints.size(); i++)
     {
         ImGui::PushID(i);
-        ImGui::InputFloat2(("point " + to_string(i)).c_str(), &startingPoints[i].x);
+        ImGui::SliderFloat2(("point " + to_string(i)).c_str(), &startingPoints[i].x, 0.0f, 1.0f);
+        //ImGui::ColorEdit4()
         ImGui::PopID();
     }
     if (ImGui::Button("Remove")){startingPoints.pop_back();}
@@ -236,11 +249,15 @@ void drawStartingPointsList()
 void ui() {
     ImGui::Begin("parameters");
     drawStartingPointsList();
-    if (ImGui::InputInt("grid size", &gridSize)) {
+    ImGui::InputInt("grid size", &newGridSize);
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        if (newGridSize < 1) { newGridSize = 1; }
+        else if (newGridSize > 1000) { newGridSize = 1000; }
+        gridSize = newGridSize;
         populateGrid();
     }
-    ImGui::InputFloat("max mutation", &maxMut);
-    ImGui::InputFloat("min mutation", &minMut);
+    ImGui::SliderFloat("mutation", &mutation, 0.0f, 50.0f);
+    ImGui::Checkbox("negative mutation", &negativeMut);
     ImGui::Checkbox("pause", &pause);
     if (ImGui::Button("Reset")) { populateGrid(); }
     if (ImGui::Button("take screenshot")) { message = TakeScreenshot(); }
@@ -261,10 +278,9 @@ int WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char* szCmdLine, int iCmdShow)
     return 0;
 }
 
-//TODO : clamp parameters(gridsize, startings points, mut-/+)
 //TODO : optimise
 //TODO : many starting point with mouse
-//TODO : bug growing rate (bottom right)
 //TODO : startings colors
+//TODO : next frame button
 
 
