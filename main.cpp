@@ -3,7 +3,6 @@
 
 using namespace GLContext;
 
-
 bool pause = false;
 int gridSize = 300;
 float mutation = 10.0f;
@@ -12,10 +11,8 @@ bool randomizeColor = true;
 bool randomizePosition = true;
 
 int newGridSize = gridSize;
-
 string message = " ";
 float pointSize = 3.5f;
-bool nextFrameUpdate = false;
 
 uvec2 getRandomElement(const vector<uvec2>& vec) {
     std::random_device rd;
@@ -45,7 +42,6 @@ vec2 getRandomPos() {
     return vec2(dis(gen),dis(gen));
 }
 
-
 struct Cell {
     vec4 color = vec4(0, 0, 0, 0);
     bool empty = true;
@@ -57,7 +53,6 @@ struct StartingPoint {
     vec2 pos = vec2(0.5f, 0.5f);
     vec4 color = getRandomColor();
 };
-
 
 std::vector<StartingPoint> startingPoints(1, StartingPoint());
 vector<vector<Cell>> grid(gridSize, vector<Cell>(gridSize));
@@ -159,7 +154,6 @@ void populateNeighbors(Cell& cell) {
     if  (                    y - 1 > 0       )    cell.neighbors.push_back(uvec2(x    , y - 1));
     if  (x - 1 > 0        && y - 1 > 0       )    cell.neighbors.push_back(uvec2(x - 1, y - 1));
     if  (x - 1 > 0                           )    cell.neighbors.push_back(uvec2(x - 1, y    ));
-
 }
 
 
@@ -224,7 +218,6 @@ void propagation() {
     for (uvec2 c : newCell) {
         livingCell.push_back(c);
     }
-
 }
 
 void randomize() {
@@ -244,8 +237,8 @@ void drawGrid() {
 
 void init() {
     populateGrid();
-    
 }
+
 void draw() {
     if (!pause) {
         propagation();
@@ -266,7 +259,6 @@ void drawStartingPointsList() {
     if (ImGui::Button("Remove")) { startingPoints.pop_back(); }
     if (ImGui::Button("Add point")) { startingPoints.push_back(StartingPoint()); }
 }
-
 
 void ui() {
     ImGui::Begin("parameters");
@@ -304,10 +296,7 @@ void ui() {
     ImGui::Spacing();
 
     ImGui::End();
-    
 }
-
-
 
 int WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char* szCmdLine, int iCmdShow) {
     GLContext::window_name = "Huegene";
